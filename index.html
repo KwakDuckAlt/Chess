@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML5 로컬 체스 게임</title>
+    <style>
+        * { box-sizing: border-box; font-family: sans-serif; }
+        body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #222; color: #fff; padding: 10px; }
+        #setup-screen { text-align: center; }
+        select, button { padding: 10px 15px; font-size: 16px; margin: 5px; cursor: pointer; background: #444; color: #fff; border: 1px solid #666; border-radius: 4px; }
+        button:hover { background: #555; }
+        #game-screen { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 480px; }
+        #timer-container { display: flex; justify-content: space-between; width: 100%; margin-bottom: 10px; font-size: 20px; font-weight: bold; }
+        
+        /* 모바일 대응 반응형 체스판 설정 */
+        #board-wrapper { 
+            width: 100%; 
+            max-width: 480px;
+            aspect-ratio: 1 / 1; 
+            transition: transform 0.6s ease-in-out; 
+        }
+        #board-wrapper.rotated { transform: rotate(180deg); }
+        #board { 
+            display: grid; 
+            grid-template-columns: repeat(8, 1fr); 
+            grid-template-rows: repeat(8, 1fr); 
+            width: 100%; 
+            height: 100%; 
+            border: 4px solid #444; 
+        }
+        .cell { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: min(8vw, 40px); cursor: pointer; user-select: none; }
+        .white-cell { background-color: #eee; color: #000; }
+        .black-cell { background-color: #769656; color: #000; }
+        .selected { background-color: #baca44 !important; }
+        .possible-move { position: relative; }
+        .possible-move::after { content: ''; width: 25%; height: 25%; background: rgba(0,0,0,0.2); border-radius: 50%; position: absolute; }
+        .rotated .cell-content { transform: rotate(180deg); }
+        #status { margin-top: 15px; font-size: 18px; font-weight: bold; min-height: 24px; text-align: center; }
+        #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); justify-content: center; align-items: center; }
+        #modal-content { background: #333; padding: 20px; border-radius: 8px; text-align: center; }
+        .promo-btn { font-size: 30px; padding: 5px 15px; margin: 5px; }
+    </style>
+</head>
+<body>
+
+<div id="setup-screen">
+    <h1>체스 게임</h1>
+    <label for="time-select">시간 설정: </label>
+    <select id="time-select">
+        <option value="unlimited">무제한</option>
+        <option value="1800">래피드 30분</option>
+        <option value="600">래피드 10분</option>
+        <option value="300">블리츠 5분</option>
+        <option value="180">블리츠 3분</option>
+        <option value="60">불렛 1분</option>
+        <option value="30">하이퍼불렛 30초</option>
+    </select>
+    <br><br>
+    <button onclick="startGame()">게임 시작</button>
+</div>
+
+<div id="game-screen">
+    <div id="timer-container">
+        <div>흑: <span id="timer-b">--:--</span></div>
+        <div>백: <span id="timer-w">--:--</span></div>
+    </div>
+    <div id="board-wrapper">
+        <div id="board"></div>
+    </div>
+    <div id="status"></div>
+    <button id="restart-btn" onclick="resetGame()" style="display:none; margin-top: 15px;">게임 재시작</button>
+</div>
+
+<div id="modal">
+    <div id="modal-content">
+        <h3>프로모션 선택</h3>
+        <div id="promo-options"></div>
+    </div>
+</div>
+
+<script>
+const PIECES = {
+    wP: '♙', wR: '♖', wN: '♘', wB: '♗', wQ: '♕', wK: '♔',
+    bP: '♟', bR: '♜', bN: '♞', bB: '♝', bQ: '♛', bK: '♚'
+};
+
+let board = [];
+let turn = 'w';
+let selectedSquare = null;
+let possibleMoves = [];
+let castleRights = { wK: true, wQ: true, bK: true, bQ: true };
+let enPassantTarget = null;
+let positionHistory = [];
+let gameActive = false;
+let times = { w: 0, b: 0 };
+let timerInterval = null;
+let isUnlimited = false;
+
+function startGame() {
+    const timeVal = document.getElementById('time-select').value;
+    if (timeVal === 'unlimited') {
+        isUnlimited = true;
+    } else {
+        isUnlimited = false;
+        times.w = parseInt(timeVal);
+        times.b = parseInt(timeVal);
+    }
+    
+    document.getElementById('setup-screen').style.display = 'none';
+    document.getElementById('game-screen').style.display = 'flex';
+    document.getElementById('restart-btn').style.display = 'none';
+    
+    initBoard();
+    updateTimerDisplay();
+    gameActive = true;
+    updateStatus();
+}
+
+function resetGame() {
+    clearInterval(timerInterval);
+    document.getElementById('board-wrapper').classList.remove('rotated');
+    document.getElementById('game-screen').style.display = 'none';
+    document.getElementById('setup-screen').style.display = 'block';
+}
+
+function initBoard() {
+    board = [
+        ['bR','bN','bB','bQ','bK','bB','bN','bR'],
+        ['bP','bP','bP','bP','bP','bP','bP','bP'],
+        ['','','','','','','',''],
+        ['','','','','','','',''],
+        ['','','','','','','',''],
+        ['','','','','','','',''],
+        ['wP','wP','wP','wP','wP','wP','wP','wP'],
+        ['wR','wN','wB','wQ','wK','wB','wN','wR']
+    ];
+    turn = 'w';
+    selectedSquare = null;
+    castleRights = { wK: true, wQ: true, bK: true, bQ: true };
+    enPassantTarget = null;
+    positionHistory = [];
+    recordPosition();
+    renderBoard();
+}
+
+function startTimer() {
+    if (isUnlimited || timerInterval) return;
+    timerInterval = setInterval(() => {
+        if (!gameActive) return;
+        times[turn]--;
+        updateTimerDisplay();
+        if (times[turn] <= 0) {
+            endGame((turn === 'w' ? '흑' : '백') + ' 시간승!');
+        }
+    }, 1000);
+}
+
+function updateTimerDisplay() {
+    if (isUnlimited) {
+        document.getElementById('timer-w').innerText = '무제한';
+        document.getElementById('timer-b').innerText = '무제한';
+        return;
+    }
+    const fmt = s => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+    document.getElementById('timer-w').innerText = fmt(times.w);
+    document.getElementById('timer-b').innerText = fmt(times.b);
+}
+
+function renderBoard() {
+    const boardEl = document.getElementById('board');
+    boardEl.innerHTML = '';
+    for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+            const cell = document.createElement('div');
+            cell.className = `cell ${(r + c) % 2 === 0 ? 'white-cell' : 'black-cell'}`;
+            cell.dataset.row = r;
+            cell.dataset.col = c;
+            
+            if (selectedSquare && selectedSquare.r === r && selectedSquare.c === c) {
+                cell.classList.add('selected');
+            }
+            if (possibleMoves.some(m => m.r === r && m.c === c)) {
+                cell.classList.add('possible-move');
+            }
+            
+            const piece = board[r][c];
+            if (piece) {
+                const span = document.createElement('span');
+                span.className = 'cell-content';
+                span.innerText = PIECES[piece];
+                cell.appendChild(span);
+            }
+            
+            cell.addEventListener('click', () => handleCellClick(r, c));
+            boardEl.appendChild(cell);
+        }
+    }
+}
+
+function handleCellClick(r, c) {
+    if (!gameActive) return;
+
+    if (selectedSquare) {
+        const move = possibleMoves.find(m => m.r === r && m.c === c);
+        if (move) {
+            executeMove(selectedSquare, move);
+            return;
+        }
+    }
+
+    const piece = board[r][c];
+    if (piece && piece[0] === turn) {
+        selectedSquare = { r, c };
+        possibleMoves = getLegalMoves(r, c, board, castleRights, enPassantTarget);
+    } else {
+        selectedSquare = null;
+        possibleMoves = [];
+    }
+    renderBoard();
+}
+
+function executeMove(from, to) {
+    if (!timerInterval && !isUnlimited) startTimer();
+
+    const piece = board[from.r][from.c];
+    const isPawn = piece[1] === 'P';
+
+    if (isPawn && to.r === (turn === 'w' ? 0 : 7)) {
+        showPromotionModal(from, to);
+        return;
+    }
+
+    commitMove(from, to, 'Q'); 
+}
+
+function commitMove(from, to, promoPiece) {
+    const piece = board[from.r][from.c];
+    const color = piece[0];
+
+    // 캐슬링 처리
+    if (piece[1] === 'K' && Math.abs(to.c - from.c) === 2) {
+        if (to.c === 6) { // 킹사이드
+            board[from.r][5] = board[from.r][7];
+            board[from.r][7] = '';
+        } else if (to.c === 2) { // 퀸사이드
+            board[from.r][3] = board[from.r][0];
+            board[from.r][0] = '';
+        }
+    }
+
+    // 앙파상 잡기 처리
+    if (piece[1] === 'P' && enPassantTarget && to.r === enPassantTarget.r && to.c === enPassantTarget.c) {
+        const capRow = color === 'w' ? to.r + 1 : to.r - 1;
+        board[capRow][to.c] = '';
+    }
+
+    // 앙파상 타겟 설정
+    if (piece[1] === 'P' && Math.abs(to.r - from.r) === 2) {
+        enPassantTarget = { r: (from.r + to.r) / 2, c: from.c };
+    } else {
+        enPassantTarget = null;
+    }
+
+    // 캐슬링 권한 갱신
+    if (piece === 'wK') { castleRights.wK = false; castleRights.wQ = false; }
+    if (piece === 'bK') { castleRights.bK = false; castleRights.bQ = false; }
+    if (piece === 'wR' && from.r === 7 && from.c === 0) castleRights.wQ = false;
+    if (piece === 'wR' && from.r === 7 && from.c === 7) castleRights.wK = false;
+    if (piece === 'bR' && from.r === 0 && from.c === 0) castleRights.bQ = false;
+    if (piece === 'bR' && from.r === 0 && from.c === 7) castleRights.bK = false;
+
+    // 기물 이동
+    board[to.r][to.c] = (piece[1] === 'P' && (to.r === 0 || to.r === 7)) ? color + promoPiece : piece;
+    board[from.r][from.c] = '';
+
+    selectedSquare = null;
+    possibleMoves = [];
+    turn = turn === 'w' ? 'b' : 'w';
+
+    // 화면 180도 회전
+    const wrapper = document.getElementById('board-wrapper');
+    if (turn === 'b') wrapper.classList.add('rotated');
+    else wrapper.classList.remove('rotated');
+
+    recordPosition();
+    renderBoard();
+    checkGameStatus();
+}
+
+function showPromotionModal(from, to) {
+    const modal = document.getElementById('modal');
+    const opts = document.getElementById('promo-options');
+    opts.innerHTML = '';
+    const choices = ['Q', 'R', 'B', 'N'];
+    choices.forEach(c => {
+        const btn = document.createElement('button');
+        btn.className = 'promo-btn';
+        btn.innerText = PIECES[turn + c];
+        btn.onclick = () => {
+            modal.style.display = 'none';
+            commitMove(from, to, c);
+        };
+        opts.appendChild(btn);
+    });
+    modal.style.display = 'flex';
+}
+
+function getPseudoMoves(r, c, bState, cRights, epTarget) {
+    const piece = bState[r][c];
+    if (!piece) return [];
+    const color = piece[0];
+    const type = piece[1];
+    const moves = [];
+    const dir = color === 'w' ? -1 : 1;
+
+    if (type === 'P') {
+        if (r + dir >= 0 && r + dir < 8 && !bState[r + dir][c]) {
+            moves.push({ r: r + dir, c });
+            const startRow = color === 'w' ? 6 : 1;
+            if (r === startRow && !bState[r + 2 * dir][c]) {
+                moves.push({ r: r + 2 * dir, c });
+            }
+        }
+        for (let dc of [-1, 1]) {
+            let nr = r + dir, nc = c + dc;
+            if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8) {
+                const target = bState[nr][nc];
+                if (target && target[0] !== color) moves.push({ r: nr, c: nc });
+                if (epTarget && epTarget.r === nr && epTarget.c === nc) moves.push({ r: nr, c: nc });
+            }
+        }
+    } else if (type === 'N') {
+        const offsets = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+        for (let [dr, dc] of offsets) {
+            let nr = r + dr, nc = c + dc;
+            if (nr>=0 && nr<8 && nc>=0 && nc<8 && (!bState[nr][nc] || bState[nr][nc][0] !== color)) {
+                moves.push({ r: nr, c: nc });
+            }
+        }
+    } else if (type === 'K') {
+        const offsets = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+        for (let [dr, dc] of offsets) {
+            let nr = r + dr, nc = c + dc;
+            if (nr>=0 && nr<8 && nc>=0 && nc<8 && (!bState[nr][nc] || bState[nr][nc][0] !== color)) {
+                moves.push({ r: nr, c: nc });
+            }
+        }
+        // 캐슬링
+        if (color === 'w' && r === 7 && c === 4) {
+            if (cRights.wK && !bState[7][5] && !bState[7][6] && !isSquareAttacked(7,4,'b',bState) && !isSquareAttacked(7,5,'b',bState) && !isSquareAttacked(7,6,'b',bState))
+                moves.push({ r: 7, c: 6 });
+            if (cRights.wQ && !bState[7][3] && !bState[7][2] && !bState[7][1] && !isSquareAttacked(7,4,'b',bState) && !isSquareAttacked(7,3,'b',bState) && !isSquareAttacked(7,2,'b',bState))
+                moves.push({ r: 7, c: 2 });
+        }
+        if (color === 'b' && r === 0 && c === 4) {
+            if (cRights.bK && !bState[0][5] && !bState[0][6] && !isSquareAttacked(0,4,'w',bState) && !isSquareAttacked(0,5,'w',bState) && !isSquareAttacked(0,6,'w',bState))
+                moves.push({ r: 0, c: 6 });
+            if (cRights.bQ && !bState[0][3] && !bState[0][2] && !bState[0][1] && !isSquareAttacked(0,4,'w',bState) && !isSquareAttacked(0,3,'w',bState) && !isSquareAttacked(0,2,'w',bState))
+                moves.push({ r: 0, c: 2 });
+        }
+    } else {
+        const dirs = (type === 'R') ? [[-1,0],[1,0],[0,-1],[0,1]] :
+                     (type === 'B') ? [[-1,-1],[-1,1],[1,-1],[1,1]] :
+                     [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]];
+        for (let [dr, dc] of dirs) {
+            let nr = r + dr, nc = c + dc;
+            while (nr>=0 && nr<8 && nc>=0 && nc<8) {
+                if (!bState[nr][nc]) {
+                    moves.push({ r: nr, c: nc });
+                } else {
+                    if (bState[nr][nc][0] !== color) moves.push({ r: nr, c: nc });
+                    break;
+                }
+                nr += dr; nc += dc;
+            }
+        }
+    }
+    return moves;
+}
+
+function isSquareAttacked(r, c, attackerColor, bState) {
+    for (let i = 0; i < 8; i++) {
+        for (let j = 0; j < 8; j++) {
+            if (bState[i][j] && bState[i][j][0] === attackerColor) {
+                const type = bState[i][j][1];
+                if (type === 'K') {
+                    if (Math.abs(r - i) <= 1 && Math.abs(c - j) <= 1) return true;
+                } else if (type === 'P') {
+                    const dir = attackerColor === 'w' ? -1 : 1;
+                    if (i + dir === r && (j - 1 === c || j + 1 === c)) return true;
+                } else {
+                    const pm = getPseudoMoves(i, j, bState, {wK:false,wQ:false,bK:false,bQ:false}, null);
+                    if (pm.some(m => m.r === r && m.c === c)) return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+function getLegalMoves(r, c, bState, cRights, epTarget) {
+    const rawMoves = getPseudoMoves(r, c, bState, cRights, epTarget);
+    const color = bState[r][c][0];
+    return rawMoves.filter(m => {
+        const tempBoard = bState.map(row => [...row]);
+        // 가상 이동
+        if (tempBoard[r][c][1] === 'P' && epTarget && m.r === epTarget.r && m.c === epTarget.c) {
+            const capRow = color === 'w' ? m.r + 1 : m.r - 1;
+            tempBoard[capRow][m.c] = '';
+        }
+        tempBoard[m.r][m.c] = tempBoard[r][c];
+        tempBoard[r][c] = '';
+        
+        // 킹 위치 찾기
+        let kR = -1, kC = -1;
+        for (let i = 0; i < 8; i++) {
+            for (let j = 0; j < 8; j++) {
+                if (tempBoard[i][j] === color + 'K') { kR = i; kC = j; break; }
+            }
+        }
+        const oppColor = color === 'w' ? 'b' : 'w';
+        return !isSquareAttacked(kR, kC, oppColor, tempBoard);
+    });
+}
+
+function hasAnyLegalMoves(color) {
+    for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+            if (board[r][c] && board[r][c][0] === color) {
+                if (getLegalMoves(r, c, board, castleRights, enPassantTarget).length > 0) return true;
+            }
+        }
+    }
+    return false;
+}
+
+function recordPosition() {
+    const stateStr = JSON.stringify(board) + turn;
+    positionHistory.push(stateStr);
+}
+
+function checkThreefoldRepetition() {
+    const current = positionHistory[positionHistory.length - 1];
+    let count = 0;
+    for (let pos of positionHistory) {
+        if (pos === current) count++;
+    }
+    return count >= 3;
+}
+
+function checkInsufficientMaterial() {
+    const pieces = [];
+    for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+            if (board[r][c]) pieces.push(board[r][c]);
+        }
+    }
+    if (pieces.length === 2) return true; // K vs K
+    if (pieces.length === 3) {
+        const remaining = pieces.filter(p => p[1] !== 'K')[0];
+        if (remaining[1] === 'N' || remaining[1] === 'B') return true; // K+N vs K or K+B vs K
+    }
+    return false;
+}
+
+function checkGameStatus() {
+    const inCheck = isKingInCheck(turn);
+    const hasMoves = hasAnyLegalMoves(turn);
+
+    if (!hasMoves) {
+        if (inCheck) {
+            endGame((turn === 'w' ? '흑' : '백') + ' 승리! (체크메이트)');
+        } else {
+            endGame('무승부 (스테일메이트)');
+        }
+        return;
+    }
+
+    if (checkThreefoldRepetition()) {
+        endGame('무승부 (3수 동형)');
+        return;
+    }
+
+    if (checkInsufficientMaterial()) {
+        endGame('무승부 (기물 부족)');
+        return;
+    }
+
+    updateStatus();
+}
+
+function isKingInCheck(color) {
+    let kR = -1, kC = -1;
+    for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+            if (board[r][c] === color + 'K') { kR = r; kC = c; break; }
+        }
+    }
+    return isSquareAttacked(kR, kC, color === 'w' ? 'b' : 'w', board);
+}
+
+function updateStatus() {
+    const name = turn === 'w' ? '백' : '흑';
+    let text = `${name} 턴`;
+    if (isKingInCheck(turn)) text += ' (체크!)';
+    document.getElementById('status').innerText = text;
+}
+
+function endGame(msg) {
+    gameActive = false;
+    clearInterval(timerInterval);
+    document.getElementById('status').innerText = msg;
+    document.getElementById('restart-btn').style.display = 'inline-block';
+}
+</script>
+</body>
+</html>
