@@ -7,57 +7,175 @@
     <style>
         * { box-sizing: border-box; font-family: sans-serif; }
         body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #222; color: #fff; padding: 10px; }
-        #setup-screen { text-align: center; }
-        select, button { padding: 10px 15px; font-size: 16px; margin: 5px; cursor: pointer; background: #444; color: #fff; border: 1px solid #666; border-radius: 4px; }
+        #setup-screen { text-align: center; max-width: 400px; width: 100%; }
+        .setup-group { margin: 12px 0; text-align: left; }
+        .setup-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        select, button, input[type="range"] { padding: 10px 15px; font-size: 16px; margin: 5px 0; cursor: pointer; background: #444; color: #fff; border: 1px solid #666; border-radius: 4px; width: 100%; }
+        input[type="range"] { padding: 5px 0; }
         button:hover { background: #555; }
         #game-screen { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 480px; }
-        #timer-container { display: flex; justify-content: space-between; width: 100%; margin-bottom: 10px; font-size: 20px; font-weight: bold; }
-        
-        /* 모바일 대응 반응형 체스판 설정 */
-        #board-wrapper { 
-            width: 100%; 
+        #timer-container { display: flex; justify-content: space-between; width: 100%; margin-bottom: 5px; font-size: 18px; font-weight: bold; }
+        #score-container { display: flex; justify-content: space-between; width: 100%; margin-bottom: 10px; font-size: 15px; color: #ddd; }
+
+        #board-wrapper {
+            width: 100%;
             max-width: 480px;
-            aspect-ratio: 1 / 1; 
-            transition: transform 0.6s ease-in-out; 
+            aspect-ratio: 1 / 1;
+            transition: transform 0.6s ease-in-out;
         }
-        #board-wrapper.rotated { transform: rotate(180deg); }
-        #board { 
-            display: grid; 
-            grid-template-columns: repeat(8, 1fr); 
-            grid-template-rows: repeat(8, 1fr); 
-            width: 100%; 
-            height: 100%; 
-            border: 4px solid #444; 
+
+        #board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            width: 100%;
+            height: 100%;
+            border: 4px solid #444;
         }
-        .cell { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: min(8vw, 40px); cursor: pointer; user-select: none; }
+
+        .cell {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: min(8vw, 40px);
+            cursor: pointer;
+            user-select: none;
+        }
+
         .white-cell { background-color: #eee; color: #000; }
         .black-cell { background-color: #769656; color: #000; }
         .selected { background-color: #baca44 !important; }
-        .possible-move { position: relative; }
-        .possible-move::after { content: ''; width: 25%; height: 25%; background: rgba(0,0,0,0.2); border-radius: 50%; position: absolute; }
-        .rotated .cell-content { transform: rotate(180deg); }
-        #status { margin-top: 15px; font-size: 18px; font-weight: bold; min-height: 24px; text-align: center; }
-        #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); justify-content: center; align-items: center; }
-        #modal-content { background: #333; padding: 20px; border-radius: 8px; text-align: center; }
-        .promo-btn { font-size: 30px; padding: 5px 15px; margin: 5px; }
+
+        .possible-move {
+            position: relative;
+        }
+
+        .possible-move::after {
+            content: '';
+            width: 25%;
+            height: 25%;
+            background: rgba(0,0,0,0.3);
+            border-radius: 50%;
+            position: absolute;
+        }
+
+        #board-wrapper.rotated {
+            transform: rotate(180deg);
+        }
+
+        .rotated .cell-content {
+            transform: rotate(180deg);
+        }
+
+        #status {
+            margin-top: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            min-height: 24px;
+            text-align: center;
+        }
+
+        #modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        #modal-content {
+            background: #333;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .promo-btn {
+            font-size: 30px;
+            padding: 5px 15px;
+            margin: 5px;
+            width: auto;
+        }
+
+        #resign-btn {
+            background: #8b0000;
+            border-color: #a00;
+            margin-bottom: 10px;
+        }
+
+        #resign-btn:hover {
+            background: #a00000;
+        }
     </style>
 </head>
 <body>
 
 <div id="setup-screen">
     <h1>체스 게임</h1>
-    <label for="time-select">시간 설정: </label>
-    <select id="time-select">
-        <option value="unlimited">무제한</option>
-        <option value="1800">래피드 30분</option>
-        <option value="600">래피드 10분</option>
-        <option value="300">블리츠 5분</option>
-        <option value="180">블리츠 3분</option>
-        <option value="60">불렛 1분</option>
-        <option value="30">하이퍼불렛 30초</option>
-    </select>
-    <br><br>
-    <button onclick="startGame()">게임 시작</button>
+
+    <div class="setup-group">
+        <label for="mode-select">대전 모드:</label>
+        <select id="mode-select">
+            <option value="local">2인 로컬 대국</option>
+            <option value="ai">AI 대국</option>
+            <option value="challenge">AI 대국 챌린지</option>
+        </select>
+    </div>
+
+    <div id="ai-options" style="display: none;">
+        <div class="setup-group">
+            <label for="color-select">플레이어 색상:</label>
+            <select id="color-select">
+                <option value="w">백 (White)</option>
+                <option value="b">흑 (Black)</option>
+            </select>
+        </div>
+
+        <div class="setup-group" id="elo-group">
+            <label for="elo-slider">AI 난이도 (Elo: <span id="elo-value">1200</span>):</label>
+            <input type="range" id="elo-slider" min="0" max="3500" step="50" value="1200">
+        </div>
+
+        <div class="setup-group" id="challenge-group" style="display: none;">
+            <label for="challenge-select">챌린지 선택:</label>
+            <select id="challenge-select">
+                <option value="all_queens">올 퀸 (상대 기물 전체 퀸)</option>
+                <option value="all_rooks">올 룩 (상대 기물 전체 룩)</option>
+                <option value="queen_world">퀸만의 세상 (아군 킹+퀸 1개)</option>
+                <option value="rook_world">룩만의 세상 (아군 킹+룩 1개)</option>
+                <option value="bishops_world">쌍비숍만의 세상 (아군 킹+비숍 2개)</option>
+                <option value="pawn_world">폰만의 세상 (아군 킹+폰 1개)</option>
+                <option value="no_queen">여왕의 소실 (아군 퀸 없이 시작)</option>
+                <option value="growing_ai">지능발전 (수마다 Elo +100)</option>
+                <option value="declining_ai">지능퇴화 (스톡피쉬 시작, 수마다 Elo -50)</option>
+                <option value="multi_move_2">2수진보 (AI 한 번에 2수)</option>
+                <option value="multi_move_3">3수진보 (AI 한 번에 3수)</option>
+                <option value="multi_move_5">5수진보 (AI 한 번에 5수)</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="setup-group">
+        <label for="time-select">시간 설정:</label>
+        <select id="time-select">
+            <option value="unlimited">무제한</option>
+            <option value="1800">래피드 30분</option>
+            <option value="600">래피드 10분</option>
+            <option value="300">블리츠 5분</option>
+            <option value="180">블리츠 3분</option>
+            <option value="60">불렛 1분</option>
+            <option value="30">하이퍼불렛 30초</option>
+        </select>
+    </div>
+
+    <button id="start-btn">게임 시작</button>
 </div>
 
 <div id="game-screen">
@@ -65,11 +183,23 @@
         <div>흑: <span id="timer-b">--:--</span></div>
         <div>백: <span id="timer-w">--:--</span></div>
     </div>
+
+    <div id="score-container">
+        <div>흑 기물 점수: <span id="score-b">0</span></div>
+        <div>백 기물 점수: <span id="score-w">0</span></div>
+    </div>
+
+    <button id="resign-btn">기권하기</button>
+
     <div id="board-wrapper">
         <div id="board"></div>
     </div>
+
     <div id="status"></div>
-    <button id="restart-btn" onclick="resetGame()" style="display:none; margin-top: 15px;">게임 재시작</button>
+
+    <button id="restart-btn" style="display:none; margin-top: 15px;">
+        게임 재시작
+    </button>
 </div>
 
 <div id="modal">
@@ -85,46 +215,259 @@ const PIECES = {
     bP: '♟', bR: '♜', bN: '♞', bB: '♝', bQ: '♛', bK: '♚'
 };
 
+const PIECE_VALUES = {
+    P: 1,
+    N: 3,
+    B: 3,
+    R: 5,
+    Q: 9,
+    K: 0
+};
+
 let board = [];
 let turn = 'w';
 let selectedSquare = null;
 let possibleMoves = [];
-let castleRights = { wK: true, wQ: true, bK: true, bQ: true };
+
+let castleRights = {
+    wK: true,
+    wQ: true,
+    bK: true,
+    bQ: true
+};
+
 let enPassantTarget = null;
 let positionHistory = [];
 let gameActive = false;
-let times = { w: 0, b: 0 };
+
+let times = {
+    w: 0,
+    b: 0
+};
+
 let timerInterval = null;
 let isUnlimited = false;
 
-function startGame() {
-    const timeVal = document.getElementById('time-select').value;
-    if (timeVal === 'unlimited') {
-        isUnlimited = true;
-    } else {
-        isUnlimited = false;
-        times.w = parseInt(timeVal);
-        times.b = parseInt(timeVal);
+let gameMode = 'local';
+let challengeType = '';
+let playerColor = 'w';
+let aiElo = 1200;
+let remainingMultiMoves = 0;
+
+window.addEventListener('DOMContentLoaded', function () {
+
+    document.getElementById('mode-select')
+        .addEventListener('change', toggleAiOptions);
+
+    document.getElementById('challenge-select')
+        .addEventListener('change', toggleChallengeElo);
+
+    document.getElementById('elo-slider')
+        .addEventListener('input', function() {
+            document.getElementById('elo-value').innerText = this.value;
+            aiElo = parseInt(this.value, 10);
+        });
+
+    document.getElementById('start-btn')
+        .addEventListener('click', startGame);
+
+    document.getElementById('resign-btn')
+        .addEventListener('click', resignGame);
+
+    document.getElementById('restart-btn')
+        .addEventListener('click', resetGame);
+
+    toggleAiOptions();
+});
+
+
+function toggleAiOptions() {
+
+    const mode = document.getElementById('mode-select').value;
+
+    const aiOpts = document.getElementById('ai-options');
+    const eloGrp = document.getElementById('elo-group');
+    const chalGrp = document.getElementById('challenge-group');
+
+    if (mode === 'local') {
+
+        aiOpts.style.display = 'none';
+
+    } else if (mode === 'ai') {
+
+        aiOpts.style.display = 'block';
+        eloGrp.style.display = 'block';
+        chalGrp.style.display = 'none';
+
+    } else if (mode === 'challenge') {
+
+        aiOpts.style.display = 'block';
+        chalGrp.style.display = 'block';
+
+        toggleChallengeElo();
     }
-    
+}
+
+
+function toggleChallengeElo() {
+
+    const chalType =
+        document.getElementById('challenge-select').value;
+
+    const eloGrp =
+        document.getElementById('elo-group');
+
+    if (
+        chalType === 'growing_ai' ||
+        chalType === 'declining_ai'
+    ) {
+        eloGrp.style.display = 'none';
+    } else {
+        eloGrp.style.display = 'block';
+    }
+}
+
+
+function startGame() {
+
+    gameMode =
+        document.getElementById('mode-select').value;
+
+    playerColor =
+        document.getElementById('color-select').value;
+
+    if (gameMode === 'ai') {
+
+        aiElo =
+            parseInt(
+                document.getElementById('elo-slider').value,
+                10
+            );
+
+    } else if (gameMode === 'challenge') {
+
+        challengeType =
+            document.getElementById('challenge-select').value;
+
+        if (challengeType === 'growing_ai') {
+            aiElo = 0;
+        } else if (challengeType === 'declining_ai') {
+            aiElo = 3500;
+        } else {
+            aiElo =
+                parseInt(
+                    document.getElementById('elo-slider').value,
+                    10
+                );
+        }
+    }
+
+    const timeVal =
+        document.getElementById('time-select').value;
+
+    if (timeVal === 'unlimited') {
+
+        isUnlimited = true;
+
+        times.w = 0;
+        times.b = 0;
+
+    } else {
+
+        isUnlimited = false;
+
+        times.w = parseInt(timeVal, 10);
+        times.b = parseInt(timeVal, 10);
+    }
+
     document.getElementById('setup-screen').style.display = 'none';
     document.getElementById('game-screen').style.display = 'flex';
+
     document.getElementById('restart-btn').style.display = 'none';
-    
+    document.getElementById('resign-btn').style.display = 'block';
+
     initBoard();
+
     updateTimerDisplay();
+
     gameActive = true;
+
     updateStatus();
+
+    if (!isUnlimited) {
+        startTimer();
+    }
+
+    remainingMultiMoves = getMultiMoveCount();
+
+    if (
+        gameMode !== 'local' &&
+        playerColor === 'b'
+    ) {
+        setTimeout(makeAiMove, 500);
+    }
 }
+
+
+function getMultiMoveCount() {
+
+    if (gameMode === 'challenge') {
+
+        if (challengeType === 'multi_move_2') return 2;
+        if (challengeType === 'multi_move_3') return 3;
+        if (challengeType === 'multi_move_5') return 5;
+    }
+
+    return 1;
+}
+
 
 function resetGame() {
-    clearInterval(timerInterval);
-    document.getElementById('board-wrapper').classList.remove('rotated');
-    document.getElementById('game-screen').style.display = 'none';
-    document.getElementById('setup-screen').style.display = 'block';
+
+    pauseTimer();
+
+    gameActive = false;
+
+    document.getElementById('board-wrapper')
+        .classList.remove('rotated');
+
+    document.getElementById('game-screen')
+        .style.display = 'none';
+
+    document.getElementById('setup-screen')
+        .style.display = 'block';
 }
 
+
+function resignGame() {
+
+    if (!gameActive) return;
+
+    let winner = '';
+
+    if (gameMode !== 'local') {
+
+        winner =
+            playerColor === 'w'
+                ? '흑 (AI)'
+                : '백 (AI)';
+
+    } else {
+
+        winner =
+            turn === 'w'
+                ? '흑'
+                : '백';
+    }
+
+    endGame(
+        winner + ' 승리! (상대 기권)'
+    );
+}
+
+
 function initBoard() {
+
     board = [
         ['bR','bN','bB','bQ','bK','bB','bN','bR'],
         ['bP','bP','bP','bP','bP','bP','bP','bP'],
@@ -135,384 +478,2292 @@ function initBoard() {
         ['wP','wP','wP','wP','wP','wP','wP','wP'],
         ['wR','wN','wB','wQ','wK','wB','wN','wR']
     ];
+
+    if (gameMode === 'challenge') {
+
+        const aiColor =
+            playerColor === 'w'
+                ? 'b'
+                : 'w';
+
+        const pColor = playerColor;
+
+        if (challengeType === 'all_queens') {
+
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+
+                    if (
+                        board[r][c] &&
+                        board[r][c][0] === aiColor &&
+                        board[r][c][1] !== 'K'
+                    ) {
+                        board[r][c] = aiColor + 'Q';
+                    }
+                }
+            }
+
+        } else if (challengeType === 'all_rooks') {
+
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+
+                    if (
+                        board[r][c] &&
+                        board[r][c][0] === aiColor &&
+                        board[r][c][1] !== 'K'
+                    ) {
+                        board[r][c] = aiColor + 'R';
+                    }
+                }
+            }
+
+        } else if (challengeType === 'queen_world') {
+
+            clearBoardForColor(pColor);
+
+            const row = pColor === 'w' ? 7 : 0;
+
+            board[row][4] = pColor + 'K';
+            board[row][3] = pColor + 'Q';
+
+        } else if (challengeType === 'rook_world') {
+
+            clearBoardForColor(pColor);
+
+            const row = pColor === 'w' ? 7 : 0;
+
+            board[row][4] = pColor + 'K';
+            board[row][0] = pColor + 'R';
+
+        } else if (challengeType === 'bishops_world') {
+
+            clearBoardForColor(pColor);
+
+            const row = pColor === 'w' ? 7 : 0;
+
+            board[row][4] = pColor + 'K';
+            board[row][2] = pColor + 'B';
+            board[row][5] = pColor + 'B';
+
+        } else if (challengeType === 'pawn_world') {
+
+            clearBoardForColor(pColor);
+
+            const kingRow = pColor === 'w' ? 7 : 0;
+            const pawnRow = pColor === 'w' ? 6 : 1;
+
+            board[kingRow][4] = pColor + 'K';
+            board[pawnRow][7] = pColor + 'P';
+
+        } else if (challengeType === 'no_queen') {
+
+            const qRow = pColor === 'w' ? 7 : 0;
+
+            board[qRow][3] = '';
+        }
+    }
+
     turn = 'w';
+
     selectedSquare = null;
-    castleRights = { wK: true, wQ: true, bK: true, bQ: true };
+    possibleMoves = [];
+
+    castleRights = {
+        wK: true,
+        wQ: true,
+        bK: true,
+        bQ: true
+    };
+
     enPassantTarget = null;
+
     positionHistory = [];
+
     recordPosition();
+
+    const wrapper =
+        document.getElementById('board-wrapper');
+
+    if (
+        gameMode !== 'local' &&
+        playerColor === 'b'
+    ) {
+        wrapper.classList.add('rotated');
+    } else {
+        wrapper.classList.remove('rotated');
+    }
+
     renderBoard();
+    updateMaterialScore();
 }
 
-function startTimer() {
-    if (isUnlimited || timerInterval) return;
-    timerInterval = setInterval(() => {
-        if (!gameActive) return;
-        times[turn]--;
-        updateTimerDisplay();
-        if (times[turn] <= 0) {
-            endGame((turn === 'w' ? '흑' : '백') + ' 시간승!');
+
+function clearBoardForColor(color) {
+
+    for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+
+            if (
+                board[r][c] &&
+                board[r][c][0] === color
+            ) {
+                board[r][c] = '';
+            }
         }
+    }
+}
+
+
+function startTimer() {
+
+    pauseTimer();
+
+    if (isUnlimited) return;
+
+    timerInterval = setInterval(function () {
+
+        if (!gameActive) return;
+
+        times[turn]--;
+
+        if (times[turn] < 0) {
+            times[turn] = 0;
+        }
+
+        updateTimerDisplay();
+
+        if (times[turn] <= 0) {
+
+            endGame(
+                (turn === 'w' ? '흑' : '백') +
+                ' 시간승!'
+            );
+        }
+
     }, 1000);
 }
 
-function updateTimerDisplay() {
-    if (isUnlimited) {
-        document.getElementById('timer-w').innerText = '무제한';
-        document.getElementById('timer-b').innerText = '무제한';
-        return;
+
+function pauseTimer() {
+
+    if (timerInterval !== null) {
+
+        clearInterval(timerInterval);
+
+        timerInterval = null;
     }
-    const fmt = s => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
-    document.getElementById('timer-w').innerText = fmt(times.w);
-    document.getElementById('timer-b').innerText = fmt(times.b);
 }
 
-function renderBoard() {
-    const boardEl = document.getElementById('board');
-    boardEl.innerHTML = '';
+
+function updateTimerDisplay() {
+
+    if (isUnlimited) {
+
+        document.getElementById('timer-w').innerText =
+            '무제한';
+
+        document.getElementById('timer-b').innerText =
+            '무제한';
+
+        return;
+    }
+
+    const fmt = function (s) {
+
+        return (
+            Math.floor(s / 60)
+                .toString()
+                .padStart(2, '0')
+            +
+            ':'
+            +
+            (s % 60)
+                .toString()
+                .padStart(2, '0')
+        );
+    };
+
+    document.getElementById('timer-w').innerText =
+        fmt(times.w);
+
+    document.getElementById('timer-b').innerText =
+        fmt(times.b);
+}
+
+
+function updateMaterialScore() {
+
+    let scoreW = 0;
+    let scoreB = 0;
+
     for (let r = 0; r < 8; r++) {
         for (let c = 0; c < 8; c++) {
-            const cell = document.createElement('div');
-            cell.className = `cell ${(r + c) % 2 === 0 ? 'white-cell' : 'black-cell'}`;
+
+            const p = board[r][c];
+
+            if (p) {
+
+                const val =
+                    PIECE_VALUES[p[1]] || 0;
+
+                if (p[0] === 'w') {
+                    scoreW += val;
+                } else {
+                    scoreB += val;
+                }
+            }
+        }
+    }
+
+    const diffW = scoreW - scoreB;
+    const diffB = scoreB - scoreW;
+
+    document.getElementById('score-w').innerText =
+        scoreW +
+        ' (' +
+        (diffW >= 0 ? '+' + diffW : diffW) +
+        ')';
+
+    document.getElementById('score-b').innerText =
+        scoreB +
+        ' (' +
+        (diffB >= 0 ? '+' + diffB : diffB) +
+        ')';
+}
+
+
+function renderBoard() {
+
+    const boardEl =
+        document.getElementById('board');
+
+    boardEl.innerHTML = '';
+
+    for (let r = 0; r < 8; r++) {
+
+        for (let c = 0; c < 8; c++) {
+
+            const cell =
+                document.createElement('div');
+
+            cell.className =
+                'cell ' +
+                (
+                    (r + c) % 2 === 0
+                        ? 'white-cell'
+                        : 'black-cell'
+                );
+
             cell.dataset.row = r;
             cell.dataset.col = c;
-            
-            if (selectedSquare && selectedSquare.r === r && selectedSquare.c === c) {
+
+            if (
+                selectedSquare &&
+                selectedSquare.r === r &&
+                selectedSquare.c === c
+            ) {
                 cell.classList.add('selected');
             }
-            if (possibleMoves.some(m => m.r === r && m.c === c)) {
+
+            if (
+                possibleMoves.some(function (m) {
+                    return m.r === r && m.c === c;
+                })
+            ) {
                 cell.classList.add('possible-move');
             }
-            
+
             const piece = board[r][c];
+
             if (piece) {
-                const span = document.createElement('span');
+
+                const span =
+                    document.createElement('span');
+
                 span.className = 'cell-content';
-                span.innerText = PIECES[piece];
+
+                span.innerText =
+                    PIECES[piece] || '';
+
                 cell.appendChild(span);
             }
-            
-            cell.addEventListener('click', () => handleCellClick(r, c));
+
+            cell.addEventListener(
+                'click',
+                function () {
+                    handleCellClick(r, c);
+                }
+            );
+
             boardEl.appendChild(cell);
         }
     }
 }
 
+
 function handleCellClick(r, c) {
+
     if (!gameActive) return;
 
+    if (
+        gameMode !== 'local' &&
+        turn !== playerColor
+    ) {
+        return;
+    }
+
     if (selectedSquare) {
-        const move = possibleMoves.find(m => m.r === r && m.c === c);
+
+        const move =
+            possibleMoves.find(function (m) {
+                return m.r === r && m.c === c;
+            });
+
         if (move) {
-            executeMove(selectedSquare, move);
+
+            executeMove(
+                selectedSquare,
+                move
+            );
+
             return;
         }
     }
 
     const piece = board[r][c];
-    if (piece && piece[0] === turn) {
-        selectedSquare = { r, c };
-        possibleMoves = getLegalMoves(r, c, board, castleRights, enPassantTarget);
+
+    if (
+        piece &&
+        piece[0] === turn
+    ) {
+
+        selectedSquare = {
+            r: r,
+            c: c
+        };
+
+        possibleMoves =
+            getLegalMoves(
+                r,
+                c,
+                board,
+                castleRights,
+                enPassantTarget
+            );
+
     } else {
+
         selectedSquare = null;
         possibleMoves = [];
     }
+
     renderBoard();
 }
 
+
 function executeMove(from, to) {
-    if (!timerInterval && !isUnlimited) startTimer();
 
-    const piece = board[from.r][from.c];
-    const isPawn = piece[1] === 'P';
+    const piece =
+        board[from.r][from.c];
 
-    if (isPawn && to.r === (turn === 'w' ? 0 : 7)) {
-        showPromotionModal(from, to);
+    if (!piece) return;
+
+    const isPawn =
+        piece[1] === 'P';
+
+    if (
+        isPawn &&
+        (
+            to.r === 0 ||
+            to.r === 7
+        )
+    ) {
+
+        if (
+            gameMode !== 'local' &&
+            turn !== playerColor
+        ) {
+
+            commitMove(
+                from,
+                to,
+                'Q'
+            );
+
+        } else {
+
+            showPromotionModal(
+                from,
+                to
+            );
+        }
+
         return;
     }
 
-    commitMove(from, to, 'Q'); 
+    commitMove(
+        from,
+        to,
+        'Q'
+    );
 }
 
+
 function commitMove(from, to, promoPiece) {
-    const piece = board[from.r][from.c];
+
+    const piece =
+        board[from.r][from.c];
+
+    if (!piece) return;
+
     const color = piece[0];
 
-    // 캐슬링 처리
-    if (piece[1] === 'K' && Math.abs(to.c - from.c) === 2) {
-        if (to.c === 6) { // 킹사이드
-            board[from.r][5] = board[from.r][7];
+    /*
+     * 캐슬링
+     */
+    if (
+        piece[1] === 'K' &&
+        Math.abs(to.c - from.c) === 2
+    ) {
+
+        if (to.c === 6) {
+
+            board[from.r][5] =
+                board[from.r][7];
+
             board[from.r][7] = '';
-        } else if (to.c === 2) { // 퀸사이드
-            board[from.r][3] = board[from.r][0];
+
+        } else if (to.c === 2) {
+
+            board[from.r][3] =
+                board[from.r][0];
+
             board[from.r][0] = '';
         }
     }
 
-    // 앙파상 잡기 처리
-    if (piece[1] === 'P' && enPassantTarget && to.r === enPassantTarget.r && to.c === enPassantTarget.c) {
-        const capRow = color === 'w' ? to.r + 1 : to.r - 1;
+    /*
+     * 앙파상
+     */
+    if (
+        piece[1] === 'P' &&
+        enPassantTarget &&
+        to.r === enPassantTarget.r &&
+        to.c === enPassantTarget.c
+    ) {
+
+        const capRow =
+            color === 'w'
+                ? to.r + 1
+                : to.r - 1;
+
         board[capRow][to.c] = '';
     }
 
-    // 앙파상 타겟 설정
-    if (piece[1] === 'P' && Math.abs(to.r - from.r) === 2) {
-        enPassantTarget = { r: (from.r + to.r) / 2, c: from.c };
+    /*
+     * 앙파상 대상 설정
+     */
+    if (
+        piece[1] === 'P' &&
+        Math.abs(to.r - from.r) === 2
+    ) {
+
+        enPassantTarget = {
+            r: (from.r + to.r) / 2,
+            c: from.c
+        };
+
     } else {
+
         enPassantTarget = null;
     }
 
-    // 캐슬링 권한 갱신
-    if (piece === 'wK') { castleRights.wK = false; castleRights.wQ = false; }
-    if (piece === 'bK') { castleRights.bK = false; castleRights.bQ = false; }
-    if (piece === 'wR' && from.r === 7 && from.c === 0) castleRights.wQ = false;
-    if (piece === 'wR' && from.r === 7 && from.c === 7) castleRights.wK = false;
-    if (piece === 'bR' && from.r === 0 && from.c === 0) castleRights.bQ = false;
-    if (piece === 'bR' && from.r === 0 && from.c === 7) castleRights.bK = false;
+    /*
+     * 캐슬링 권리 제거
+     */
+    if (piece === 'wK') {
+        castleRights.wK = false;
+        castleRights.wQ = false;
+    }
 
-    // 기물 이동
-    board[to.r][to.c] = (piece[1] === 'P' && (to.r === 0 || to.r === 7)) ? color + promoPiece : piece;
+    if (piece === 'bK') {
+        castleRights.bK = false;
+        castleRights.bQ = false;
+    }
+
+    if (
+        piece === 'wR' &&
+        from.r === 7 &&
+        from.c === 0
+    ) {
+        castleRights.wQ = false;
+    }
+
+    if (
+        piece === 'wR' &&
+        from.r === 7 &&
+        from.c === 7
+    ) {
+        castleRights.wK = false;
+    }
+
+    if (
+        piece === 'bR' &&
+        from.r === 0 &&
+        from.c === 0
+    ) {
+        castleRights.bQ = false;
+    }
+
+    if (
+        piece === 'bR' &&
+        from.r === 0 &&
+        from.c === 7
+    ) {
+        castleRights.bK = false;
+    }
+
+    /*
+     * 잡힌 룩의 캐슬링 권리 제거
+     */
+    const capturedPiece = board[to.r][to.c];
+
+    if (capturedPiece === 'wR') {
+
+        if (to.r === 7 && to.c === 0) {
+            castleRights.wQ = false;
+        }
+
+        if (to.r === 7 && to.c === 7) {
+            castleRights.wK = false;
+        }
+    }
+
+    if (capturedPiece === 'bR') {
+
+        if (to.r === 0 && to.c === 0) {
+            castleRights.bQ = false;
+        }
+
+        if (to.r === 0 && to.c === 7) {
+            castleRights.bK = false;
+        }
+    }
+
+    /*
+     * 실제 이동
+     */
+    if (
+        piece[1] === 'P' &&
+        (to.r === 0 || to.r === 7)
+    ) {
+
+        board[to.r][to.c] =
+            color + promoPiece;
+
+    } else {
+
+        board[to.r][to.c] =
+            piece;
+    }
+
     board[from.r][from.c] = '';
 
     selectedSquare = null;
     possibleMoves = [];
-    turn = turn === 'w' ? 'b' : 'w';
 
-    // 화면 180도 회전
-    const wrapper = document.getElementById('board-wrapper');
-    if (turn === 'b') wrapper.classList.add('rotated');
-    else wrapper.classList.remove('rotated');
+    let nextTurn = turn;
+
+    const opponentColor =
+        turn === 'w' ? 'b' : 'w';
+
+    const isOpponentKingChecked =
+        isKingInCheck(opponentColor);
+
+    /*
+     * AI 다중 이동
+     */
+    if (
+        gameMode !== 'local' &&
+        turn !== playerColor
+    ) {
+
+        remainingMultiMoves--;
+
+        if (
+            remainingMultiMoves <= 0 ||
+            isOpponentKingChecked
+        ) {
+
+            nextTurn =
+                turn === 'w'
+                    ? 'b'
+                    : 'w';
+        }
+
+    } else {
+
+        nextTurn =
+            turn === 'w'
+                ? 'b'
+                : 'w';
+
+        remainingMultiMoves =
+            getMultiMoveCount();
+    }
+
+    turn = nextTurn;
+
+    /*
+     * 챌린지 AI Elo
+     */
+    if (
+        turn === 'w' &&
+        gameMode === 'challenge'
+    ) {
+
+        if (challengeType === 'growing_ai') {
+
+            aiElo =
+                Math.min(
+                    3500,
+                    aiElo + 100
+                );
+
+        } else if (
+            challengeType === 'declining_ai'
+        ) {
+
+            aiElo =
+                Math.max(
+                    0,
+                    aiElo - 50
+                );
+        }
+    }
+
+    /*
+     * 로컬 게임 보드 방향 전환
+     */
+    if (gameMode === 'local') {
+
+        const wrapper =
+            document.getElementById(
+                'board-wrapper'
+            );
+
+        if (turn === 'b') {
+
+            wrapper.classList.add('rotated');
+
+        } else {
+
+            wrapper.classList.remove('rotated');
+        }
+    }
 
     recordPosition();
+
     renderBoard();
+    updateMaterialScore();
+
     checkGameStatus();
+
+    if (
+        gameActive &&
+        !isUnlimited
+    ) {
+        startTimer();
+    }
+
+    if (
+        gameActive &&
+        gameMode !== 'local' &&
+        turn !== playerColor
+    ) {
+
+        let delay = 250;
+
+        if (
+            !isUnlimited &&
+            times[turn] < 30
+        ) {
+            delay = 50;
+        }
+
+        setTimeout(
+            makeAiMove,
+            delay
+        );
+    }
 }
 
+
 function showPromotionModal(from, to) {
-    const modal = document.getElementById('modal');
-    const opts = document.getElementById('promo-options');
+
+    const modal =
+        document.getElementById('modal');
+
+    const opts =
+        document.getElementById('promo-options');
+
     opts.innerHTML = '';
-    const choices = ['Q', 'R', 'B', 'N'];
-    choices.forEach(c => {
-        const btn = document.createElement('button');
-        btn.className = 'promo-btn';
-        btn.innerText = PIECES[turn + c];
-        btn.onclick = () => {
+
+    const choices = [
+        'Q',
+        'R',
+        'B',
+        'N'
+    ];
+
+    choices.forEach(function (c) {
+
+        const btn =
+            document.createElement('button');
+
+        btn.className =
+            'promo-btn';
+
+        btn.innerText =
+            PIECES[turn + c];
+
+        btn.onclick = function () {
+
             modal.style.display = 'none';
-            commitMove(from, to, c);
+
+            commitMove(
+                from,
+                to,
+                c
+            );
         };
+
         opts.appendChild(btn);
     });
+
     modal.style.display = 'flex';
 }
 
-function getPseudoMoves(r, c, bState, cRights, epTarget) {
+
+function getPseudoMoves(
+    r,
+    c,
+    bState,
+    cRights,
+    epTarget
+) {
+
     const piece = bState[r][c];
+
     if (!piece) return [];
+
     const color = piece[0];
     const type = piece[1];
-    const moves = [];
-    const dir = color === 'w' ? -1 : 1;
 
+    const moves = [];
+
+    const dir =
+        color === 'w'
+            ? -1
+            : 1;
+
+    /*
+     * 폰
+     */
     if (type === 'P') {
-        if (r + dir >= 0 && r + dir < 8 && !bState[r + dir][c]) {
-            moves.push({ r: r + dir, c });
-            const startRow = color === 'w' ? 6 : 1;
-            if (r === startRow && !bState[r + 2 * dir][c]) {
-                moves.push({ r: r + 2 * dir, c });
+
+        if (
+            r + dir >= 0 &&
+            r + dir < 8 &&
+            !bState[r + dir][c]
+        ) {
+
+            moves.push({
+                r: r + dir,
+                c: c
+            });
+
+            const startRow =
+                color === 'w'
+                    ? 6
+                    : 1;
+
+            if (
+                r === startRow &&
+                !bState[r + 2 * dir][c]
+            ) {
+
+                moves.push({
+                    r: r + 2 * dir,
+                    c: c
+                });
             }
         }
-        for (let dc of [-1, 1]) {
-            let nr = r + dir, nc = c + dc;
-            if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8) {
-                const target = bState[nr][nc];
-                if (target && target[0] !== color) moves.push({ r: nr, c: nc });
-                if (epTarget && epTarget.r === nr && epTarget.c === nc) moves.push({ r: nr, c: nc });
+
+        for (const dc of [-1, 1]) {
+
+            const nr = r + dir;
+            const nc = c + dc;
+
+            if (
+                nr >= 0 &&
+                nr < 8 &&
+                nc >= 0 &&
+                nc < 8
+            ) {
+
+                const target =
+                    bState[nr][nc];
+
+                if (
+                    target &&
+                    target[0] !== color &&
+                    target[1] !== 'K'
+                ) {
+
+                    moves.push({
+                        r: nr,
+                        c: nc
+                    });
+                }
+
+                if (
+                    epTarget &&
+                    epTarget.r === nr &&
+                    epTarget.c === nc
+                ) {
+
+                    moves.push({
+                        r: nr,
+                        c: nc
+                    });
+                }
             }
         }
+
+    /*
+     * 나이트
+     */
     } else if (type === 'N') {
-        const offsets = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
-        for (let [dr, dc] of offsets) {
-            let nr = r + dr, nc = c + dc;
-            if (nr>=0 && nr<8 && nc>=0 && nc<8 && (!bState[nr][nc] || bState[nr][nc][0] !== color)) {
-                moves.push({ r: nr, c: nc });
+
+        const offsets = [
+            [-2,-1],
+            [-2,1],
+            [-1,-2],
+            [-1,2],
+            [1,-2],
+            [1,2],
+            [2,-1],
+            [2,1]
+        ];
+
+        for (const offset of offsets) {
+
+            const nr = r + offset[0];
+            const nc = c + offset[1];
+
+            if (
+                nr >= 0 &&
+                nr < 8 &&
+                nc >= 0 &&
+                nc < 8 &&
+                (
+                    !bState[nr][nc] ||
+                    (
+                        bState[nr][nc][0] !== color &&
+                        bState[nr][nc][1] !== 'K'
+                    )
+                )
+            ) {
+
+                moves.push({
+                    r: nr,
+                    c: nc
+                });
             }
         }
+
+    /*
+     * 킹
+     */
     } else if (type === 'K') {
-        const offsets = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
-        for (let [dr, dc] of offsets) {
-            let nr = r + dr, nc = c + dc;
-            if (nr>=0 && nr<8 && nc>=0 && nc<8 && (!bState[nr][nc] || bState[nr][nc][0] !== color)) {
-                moves.push({ r: nr, c: nc });
+
+        const offsets = [
+            [-1,-1],
+            [-1,0],
+            [-1,1],
+            [0,-1],
+            [0,1],
+            [1,-1],
+            [1,0],
+            [1,1]
+        ];
+
+        for (const offset of offsets) {
+
+            const nr = r + offset[0];
+            const nc = c + offset[1];
+
+            if (
+                nr >= 0 &&
+                nr < 8 &&
+                nc >= 0 &&
+                nc < 8 &&
+                (
+                    !bState[nr][nc] ||
+                    (
+                        bState[nr][nc][0] !== color &&
+                        bState[nr][nc][1] !== 'K'
+                    )
+                )
+            ) {
+
+                moves.push({
+                    r: nr,
+                    c: nc
+                });
             }
         }
-        // 캐슬링
-        if (color === 'w' && r === 7 && c === 4) {
-            if (cRights.wK && !bState[7][5] && !bState[7][6] && !isSquareAttacked(7,4,'b',bState) && !isSquareAttacked(7,5,'b',bState) && !isSquareAttacked(7,6,'b',bState))
-                moves.push({ r: 7, c: 6 });
-            if (cRights.wQ && !bState[7][3] && !bState[7][2] && !bState[7][1] && !isSquareAttacked(7,4,'b',bState) && !isSquareAttacked(7,3,'b',bState) && !isSquareAttacked(7,2,'b',bState))
-                moves.push({ r: 7, c: 2 });
+
+        /*
+         * 캐슬링
+         */
+        if (cRights) {
+
+            if (
+                color === 'w' &&
+                r === 7 &&
+                c === 4
+            ) {
+
+                if (
+                    cRights.wK &&
+                    bState[7][7] === 'wR' &&
+                    !bState[7][5] &&
+                    !bState[7][6] &&
+                    !isSquareAttacked(
+                        7, 4, 'b', bState
+                    ) &&
+                    !isSquareAttacked(
+                        7, 5, 'b', bState
+                    ) &&
+                    !isSquareAttacked(
+                        7, 6, 'b', bState
+                    )
+                ) {
+
+                    moves.push({
+                        r: 7,
+                        c: 6
+                    });
+                }
+
+                if (
+                    cRights.wQ &&
+                    bState[7][0] === 'wR' &&
+                    !bState[7][3] &&
+                    !bState[7][2] &&
+                    !bState[7][1] &&
+                    !isSquareAttacked(
+                        7, 4, 'b', bState
+                    ) &&
+                    !isSquareAttacked(
+                        7, 3, 'b', bState
+                    ) &&
+                    !isSquareAttacked(
+                        7, 2, 'b', bState
+                    )
+                ) {
+
+                    moves.push({
+                        r: 7,
+                        c: 2
+                    });
+                }
+            }
+
+            if (
+                color === 'b' &&
+                r === 0 &&
+                c === 4
+            ) {
+
+                if (
+                    cRights.bK &&
+                    bState[0][7] === 'bR' &&
+                    !bState[0][5] &&
+                    !bState[0][6] &&
+                    !isSquareAttacked(
+                        0, 4, 'w', bState
+                    ) &&
+                    !isSquareAttacked(
+                        0, 5, 'w', bState
+                    ) &&
+                    !isSquareAttacked(
+                        0, 6, 'w', bState
+                    )
+                ) {
+
+                    moves.push({
+                        r: 0,
+                        c: 6
+                    });
+                }
+
+                if (
+                    cRights.bQ &&
+                    bState[0][0] === 'bR' &&
+                    !bState[0][3] &&
+                    !bState[0][2] &&
+                    !bState[0][1] &&
+                    !isSquareAttacked(
+                        0, 4, 'w', bState
+                    ) &&
+                    !isSquareAttacked(
+                        0, 3, 'w', bState
+                    ) &&
+                    !isSquareAttacked(
+                        0, 2, 'w', bState
+                    )
+                ) {
+
+                    moves.push({
+                        r: 0,
+                        c: 2
+                    });
+                }
+            }
         }
-        if (color === 'b' && r === 0 && c === 4) {
-            if (cRights.bK && !bState[0][5] && !bState[0][6] && !isSquareAttacked(0,4,'w',bState) && !isSquareAttacked(0,5,'w',bState) && !isSquareAttacked(0,6,'w',bState))
-                moves.push({ r: 0, c: 6 });
-            if (cRights.bQ && !bState[0][3] && !bState[0][2] && !bState[0][1] && !isSquareAttacked(0,4,'w',bState) && !isSquareAttacked(0,3,'w',bState) && !isSquareAttacked(0,2,'w',bState))
-                moves.push({ r: 0, c: 2 });
-        }
+
+    /*
+     * 룩 / 비숍 / 퀸
+     */
     } else {
-        const dirs = (type === 'R') ? [[-1,0],[1,0],[0,-1],[0,1]] :
-                     (type === 'B') ? [[-1,-1],[-1,1],[1,-1],[1,1]] :
-                     [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]];
-        for (let [dr, dc] of dirs) {
-            let nr = r + dr, nc = c + dc;
-            while (nr>=0 && nr<8 && nc>=0 && nc<8) {
+
+        const dirs =
+            type === 'R'
+                ? [
+                    [-1,0],
+                    [1,0],
+                    [0,-1],
+                    [0,1]
+                ]
+                : type === 'B'
+                    ? [
+                        [-1,-1],
+                        [-1,1],
+                        [1,-1],
+                        [1,1]
+                    ]
+                    : [
+                        [-1,0],
+                        [1,0],
+                        [0,-1],
+                        [0,1],
+                        [-1,-1],
+                        [-1,1],
+                        [1,-1],
+                        [1,1]
+                    ];
+
+        for (const dirItem of dirs) {
+
+            let nr = r + dirItem[0];
+            let nc = c + dirItem[1];
+
+            while (
+                nr >= 0 &&
+                nr < 8 &&
+                nc >= 0 &&
+                nc < 8
+            ) {
+
                 if (!bState[nr][nc]) {
-                    moves.push({ r: nr, c: nc });
+
+                    moves.push({
+                        r: nr,
+                        c: nc
+                    });
+
                 } else {
-                    if (bState[nr][nc][0] !== color) moves.push({ r: nr, c: nc });
+
+                    if (
+                        bState[nr][nc][0] !== color &&
+                        bState[nr][nc][1] !== 'K'
+                    ) {
+
+                        moves.push({
+                            r: nr,
+                            c: nc
+                        });
+                    }
+
                     break;
                 }
-                nr += dr; nc += dc;
+
+                nr += dirItem[0];
+                nc += dirItem[1];
             }
         }
     }
+
     return moves;
 }
 
-function isSquareAttacked(r, c, attackerColor, bState) {
+
+function isSquareAttacked(
+    r,
+    c,
+    attackerColor,
+    bState
+) {
+
     for (let i = 0; i < 8; i++) {
+
         for (let j = 0; j < 8; j++) {
-            if (bState[i][j] && bState[i][j][0] === attackerColor) {
-                const type = bState[i][j][1];
-                if (type === 'K') {
-                    if (Math.abs(r - i) <= 1 && Math.abs(c - j) <= 1) return true;
-                } else if (type === 'P') {
-                    const dir = attackerColor === 'w' ? -1 : 1;
-                    if (i + dir === r && (j - 1 === c || j + 1 === c)) return true;
-                } else {
-                    const pm = getPseudoMoves(i, j, bState, {wK:false,wQ:false,bK:false,bQ:false}, null);
-                    if (pm.some(m => m.r === r && m.c === c)) return true;
+
+            const piece = bState[i][j];
+
+            if (!piece || piece[0] !== attackerColor) continue;
+
+            const type = piece[1];
+
+            if (type === 'K') {
+
+                if (
+                    Math.abs(r - i) <= 1 &&
+                    Math.abs(c - j) <= 1
+                ) {
+                    return true;
+                }
+
+            } else if (type === 'P') {
+
+                const dir =
+                    attackerColor === 'w'
+                        ? -1
+                        : 1;
+
+                if (
+                    i + dir === r &&
+                    (
+                        j - 1 === c ||
+                        j + 1 === c
+                    )
+                ) {
+                    return true;
+                }
+
+            } else if (type === 'N') {
+
+                const offsets = [
+                    [-2, -1],
+                    [-2, 1],
+                    [-1, -2],
+                    [-1, 2],
+                    [1, -2],
+                    [1, 2],
+                    [2, -1],
+                    [2, 1]
+                ];
+
+                for (const offset of offsets) {
+
+                    if (
+                        i + offset[0] === r &&
+                        j + offset[1] === c
+                    ) {
+                        return true;
+                    }
+                }
+
+            } else {
+
+                let directions = [];
+
+                if (type === 'R') {
+
+                    directions = [
+                        [-1, 0],
+                        [1, 0],
+                        [0, -1],
+                        [0, 1]
+                    ];
+
+                } else if (type === 'B') {
+
+                    directions = [
+                        [-1, -1],
+                        [-1, 1],
+                        [1, -1],
+                        [1, 1]
+                    ];
+
+                } else if (type === 'Q') {
+
+                    directions = [
+                        [-1, 0],
+                        [1, 0],
+                        [0, -1],
+                        [0, 1],
+                        [-1, -1],
+                        [-1, 1],
+                        [1, -1],
+                        [1, 1]
+                    ];
+                }
+
+                for (const direction of directions) {
+
+                    let nr = i + direction[0];
+                    let nc = j + direction[1];
+
+                    while (
+                        nr >= 0 &&
+                        nr < 8 &&
+                        nc >= 0 &&
+                        nc < 8
+                    ) {
+
+                        if (
+                            nr === r &&
+                            nc === c
+                        ) {
+                            return true;
+                        }
+
+                        if (bState[nr][nc]) {
+                            break;
+                        }
+
+                        nr += direction[0];
+                        nc += direction[1];
+                    }
                 }
             }
         }
     }
+
     return false;
 }
 
-function getLegalMoves(r, c, bState, cRights, epTarget) {
-    const rawMoves = getPseudoMoves(r, c, bState, cRights, epTarget);
-    const color = bState[r][c][0];
-    return rawMoves.filter(m => {
-        const tempBoard = bState.map(row => [...row]);
-        // 가상 이동
-        if (tempBoard[r][c][1] === 'P' && epTarget && m.r === epTarget.r && m.c === epTarget.c) {
-            const capRow = color === 'w' ? m.r + 1 : m.r - 1;
+
+function getLegalMoves(
+    r,
+    c,
+    bState,
+    cRights,
+    epTarget
+) {
+
+    const rawMoves =
+        getPseudoMoves(
+            r,
+            c,
+            bState,
+            cRights,
+            epTarget
+        );
+
+    const piece =
+        bState[r][c];
+
+    if (!piece) return [];
+
+    const color = piece[0];
+
+    return rawMoves.filter(function (m) {
+
+        const tempBoard =
+            bState.map(function (row) {
+                return [...row];
+            });
+
+        /*
+         * 앙파상
+         */
+        if (
+            tempBoard[r][c][1] === 'P' &&
+            epTarget &&
+            m.r === epTarget.r &&
+            m.c === epTarget.c
+        ) {
+
+            const capRow =
+                color === 'w'
+                    ? m.r + 1
+                    : m.r - 1;
+
             tempBoard[capRow][m.c] = '';
         }
-        tempBoard[m.r][m.c] = tempBoard[r][c];
-        tempBoard[r][c] = '';
-        
-        // 킹 위치 찾기
-        let kR = -1, kC = -1;
-        for (let i = 0; i < 8; i++) {
-            for (let j = 0; j < 8; j++) {
-                if (tempBoard[i][j] === color + 'K') { kR = i; kC = j; break; }
+
+        /*
+         * 캐슬링 시 룩도 이동시켜서 검사
+         */
+        if (
+            tempBoard[r][c][1] === 'K' &&
+            Math.abs(m.c - c) === 2
+        ) {
+
+            if (m.c === 6) {
+
+                tempBoard[r][5] =
+                    tempBoard[r][7];
+
+                tempBoard[r][7] = '';
+
+            } else if (m.c === 2) {
+
+                tempBoard[r][3] =
+                    tempBoard[r][0];
+
+                tempBoard[r][0] = '';
             }
         }
-        const oppColor = color === 'w' ? 'b' : 'w';
-        return !isSquareAttacked(kR, kC, oppColor, tempBoard);
+
+        tempBoard[m.r][m.c] =
+            tempBoard[r][c];
+
+        tempBoard[r][c] = '';
+
+        let kR = -1;
+        let kC = -1;
+
+        for (let i = 0; i < 8; i++) {
+
+            for (let j = 0; j < 8; j++) {
+
+                if (
+                    tempBoard[i][j] ===
+                    color + 'K'
+                ) {
+
+                    kR = i;
+                    kC = j;
+
+                    break;
+                }
+            }
+
+            if (kR !== -1) break;
+        }
+
+        if (kR === -1 || kC === -1) {
+            return false;
+        }
+
+        const oppColor =
+            color === 'w'
+                ? 'b'
+                : 'w';
+
+        return !isSquareAttacked(
+            kR,
+            kC,
+            oppColor,
+            tempBoard
+        );
     });
 }
 
-function hasAnyLegalMoves(color) {
+
+function getAllLegalMovesForColor(
+    color,
+    bState,
+    cRights,
+    epTarget
+) {
+
+    const allMoves = [];
+
     for (let r = 0; r < 8; r++) {
+
         for (let c = 0; c < 8; c++) {
-            if (board[r][c] && board[r][c][0] === color) {
-                if (getLegalMoves(r, c, board, castleRights, enPassantTarget).length > 0) return true;
+
+            if (
+                bState[r][c] &&
+                bState[r][c][0] === color
+            ) {
+
+                const moves =
+                    getLegalMoves(
+                        r,
+                        c,
+                        bState,
+                        cRights,
+                        epTarget
+                    );
+
+                moves.forEach(function (m) {
+
+                    allMoves.push({
+                        from: {
+                            r: r,
+                            c: c
+                        },
+                        to: m
+                    });
+                });
             }
         }
     }
+
+    return allMoves;
+}
+
+
+function hasAnyLegalMoves(color) {
+
+    for (let r = 0; r < 8; r++) {
+
+        for (let c = 0; c < 8; c++) {
+
+            if (
+                board[r][c] &&
+                board[r][c][0] === color
+            ) {
+
+                if (
+                    getLegalMoves(
+                        r,
+                        c,
+                        board,
+                        castleRights,
+                        enPassantTarget
+                    ).length > 0
+                ) {
+                    return true;
+                }
+            }
+        }
+    }
+
     return false;
 }
 
+
 function recordPosition() {
-    const stateStr = JSON.stringify(board) + turn;
+
+    const stateStr =
+        JSON.stringify(board) +
+        '|' +
+        turn;
+
     positionHistory.push(stateStr);
 }
 
+
 function checkThreefoldRepetition() {
-    const current = positionHistory[positionHistory.length - 1];
+
+    const current =
+        positionHistory[
+            positionHistory.length - 1
+        ];
+
     let count = 0;
-    for (let pos of positionHistory) {
-        if (pos === current) count++;
+
+    for (
+        const pos of positionHistory
+    ) {
+
+        if (pos === current) {
+            count++;
+        }
     }
+
     return count >= 3;
 }
 
+
 function checkInsufficientMaterial() {
+
     const pieces = [];
+
     for (let r = 0; r < 8; r++) {
+
         for (let c = 0; c < 8; c++) {
-            if (board[r][c]) pieces.push(board[r][c]);
+
+            if (board[r][c]) {
+                pieces.push(board[r][c]);
+            }
         }
     }
-    if (pieces.length === 2) return true; // K vs K
-    if (pieces.length === 3) {
-        const remaining = pieces.filter(p => p[1] !== 'K')[0];
-        if (remaining[1] === 'N' || remaining[1] === 'B') return true; // K+N vs K or K+B vs K
+
+    if (pieces.length === 2) {
+        return true;
     }
+
+    if (pieces.length === 3) {
+
+        const remaining =
+            pieces.find(function (p) {
+                return p[1] !== 'K';
+            });
+
+        if (
+            remaining &&
+            (
+                remaining[1] === 'N' ||
+                remaining[1] === 'B'
+            )
+        ) {
+            return true;
+        }
+    }
+
     return false;
 }
 
+
 function checkGameStatus() {
-    const inCheck = isKingInCheck(turn);
-    const hasMoves = hasAnyLegalMoves(turn);
+
+    const inCheck =
+        isKingInCheck(turn);
+
+    const hasMoves =
+        hasAnyLegalMoves(turn);
 
     if (!hasMoves) {
+
         if (inCheck) {
-            endGame((turn === 'w' ? '흑' : '백') + ' 승리! (체크메이트)');
+
+            endGame(
+                (turn === 'w' ? '흑' : '백') +
+                ' 승리! (체크메이트)'
+            );
+
         } else {
-            endGame('무승부 (스테일메이트)');
+
+            endGame(
+                '무승부 (스테일메이트)'
+            );
         }
+
         return;
     }
 
     if (checkThreefoldRepetition()) {
-        endGame('무승부 (3수 동형)');
+
+        endGame(
+            '무승부 (3수 동형)'
+        );
+
         return;
     }
 
     if (checkInsufficientMaterial()) {
-        endGame('무승부 (기물 부족)');
+
+        endGame(
+            '무승부 (기물 부족)'
+        );
+
         return;
     }
 
     updateStatus();
 }
 
+
 function isKingInCheck(color) {
-    let kR = -1, kC = -1;
+
+    let kR = -1;
+    let kC = -1;
+
     for (let r = 0; r < 8; r++) {
+
         for (let c = 0; c < 8; c++) {
-            if (board[r][c] === color + 'K') { kR = r; kC = c; break; }
+
+            if (
+                board[r][c] ===
+                color + 'K'
+            ) {
+
+                kR = r;
+                kC = c;
+
+                break;
+            }
         }
+
+        if (kR !== -1) break;
     }
-    return isSquareAttacked(kR, kC, color === 'w' ? 'b' : 'w', board);
+
+    /*
+     * 챌린지에서 킹이 없는 비정상 상태를
+     * 안전하게 처리
+     */
+    if (kR === -1 || kC === -1) {
+        return false;
+    }
+
+    return isSquareAttacked(
+        kR,
+        kC,
+        color === 'w' ? 'b' : 'w',
+        board
+    );
 }
+
 
 function updateStatus() {
-    const name = turn === 'w' ? '백' : '흑';
-    let text = `${name} 턴`;
-    if (isKingInCheck(turn)) text += ' (체크!)';
-    document.getElementById('status').innerText = text;
+
+    if (!gameActive) return;
+
+    const name =
+        turn === 'w'
+            ? '백'
+            : '흑';
+
+    let text =
+        name + ' 턴';
+
+    if (
+        gameMode === 'challenge' &&
+        (
+            challengeType === 'growing_ai' ||
+            challengeType === 'declining_ai'
+        )
+    ) {
+
+        text +=
+            ' (현재 AI Elo: ' +
+            aiElo +
+            ')';
+    }
+
+    if (isKingInCheck(turn)) {
+        text += ' (체크!)';
+    }
+
+    document.getElementById('status')
+        .innerText = text;
 }
 
+
 function endGame(msg) {
+
     gameActive = false;
-    clearInterval(timerInterval);
-    document.getElementById('status').innerText = msg;
-    document.getElementById('restart-btn').style.display = 'inline-block';
+
+    pauseTimer();
+
+    document.getElementById('status')
+        .innerText = msg;
+
+    document.getElementById('resign-btn')
+        .style.display = 'none';
+
+    document.getElementById('restart-btn')
+        .style.display = 'inline-block';
+}
+
+
+/*
+ * AI용 이동 시뮬레이션
+ */
+function simulateMove(
+    bState,
+    from,
+    to,
+    epTarget
+) {
+
+    const nextBoard =
+        bState.map(function (r) {
+            return [...r];
+        });
+
+    const piece =
+        nextBoard[from.r][from.c];
+
+    if (!piece) {
+        return nextBoard;
+    }
+
+    const color = piece[0];
+
+    /*
+     * 앙파상
+     */
+    if (
+        piece[1] === 'P' &&
+        epTarget &&
+        to.r === epTarget.r &&
+        to.c === epTarget.c
+    ) {
+
+        const capRow =
+            color === 'w'
+                ? to.r + 1
+                : to.r - 1;
+
+        nextBoard[capRow][to.c] = '';
+    }
+
+    /*
+     * 캐슬링
+     */
+    if (
+        piece[1] === 'K' &&
+        Math.abs(to.c - from.c) === 2
+    ) {
+
+        if (to.c === 6) {
+
+            nextBoard[from.r][5] =
+                nextBoard[from.r][7];
+
+            nextBoard[from.r][7] = '';
+
+        } else if (to.c === 2) {
+
+            nextBoard[from.r][3] =
+                nextBoard[from.r][0];
+
+            nextBoard[from.r][0] = '';
+        }
+    }
+
+    /*
+     * 프로모션
+     */
+    if (
+        piece[1] === 'P' &&
+        (
+            to.r === 0 ||
+            to.r === 7
+        )
+    ) {
+
+        nextBoard[to.r][to.c] =
+            color + 'Q';
+
+    } else {
+
+        nextBoard[to.r][to.c] =
+            piece;
+    }
+
+    nextBoard[from.r][from.c] = '';
+
+    return nextBoard;
+}
+
+
+function isCheckmatePosition(
+    bState,
+    currentColor
+) {
+
+    let kR = -1;
+    let kC = -1;
+
+    for (let r = 0; r < 8; r++) {
+
+        for (let c = 0; c < 8; c++) {
+
+            if (
+                bState[r][c] ===
+                currentColor + 'K'
+            ) {
+
+                kR = r;
+                kC = c;
+
+                break;
+            }
+        }
+
+        if (kR !== -1) break;
+    }
+
+    if (kR === -1) {
+        return false;
+    }
+
+    const oppColor =
+        currentColor === 'w'
+            ? 'b'
+            : 'w';
+
+    if (
+        !isSquareAttacked(
+            kR,
+            kC,
+            oppColor,
+            bState
+        )
+    ) {
+        return false;
+    }
+
+    const moves =
+        getAllLegalMovesForColor(
+            currentColor,
+            bState,
+            {
+                wK: false,
+                wQ: false,
+                bK: false,
+                bQ: false
+            },
+            null
+        );
+
+    return moves.length === 0;
+}
+
+
+function evaluateBoard(
+    bState,
+    aiColor
+) {
+
+    let total = 0;
+
+    const pstPawn = [
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [50, 50, 50, 50, 50, 50, 50, 50],
+        [10, 10, 20, 30, 30, 20, 10, 10],
+        [5, 5, 10, 25, 25, 10, 5, 5],
+        [0, 0, 0, 20, 20, 0, 0, 0],
+        [5, -5, -10, 0, 0, -10, -5, 5],
+        [5, 10, 10, -20, -20, 10, 10, 5],
+        [0, 0, 0, 0, 0, 0, 0, 0]
+    ];
+
+    const pstKnight = [
+        [-50,-40,-30,-30,-30,-30,-40,-50],
+        [-40,-20,0,0,0,0,-20,-40],
+        [-30,0,10,15,15,10,0,-30],
+        [-30,5,15,20,20,15,5,-30],
+        [-30,0,15,20,20,15,0,-30],
+        [-30,5,10,15,15,10,5,-30],
+        [-40,-20,0,5,5,0,-20,-40],
+        [-50,-40,-30,-30,-30,-30,-40,-50]
+    ];
+
+    for (let r = 0; r < 8; r++) {
+
+        for (let c = 0; c < 8; c++) {
+
+            const p = bState[r][c];
+
+            if (!p) continue;
+
+            let val =
+                (PIECE_VALUES[p[1]] || 0) * 10;
+
+            if (p[1] === 'P') {
+
+                val +=
+                    (
+                        p[0] === 'w'
+                            ? pstPawn[r][c]
+                            : pstPawn[7 - r][c]
+                    ) * 0.1;
+
+            } else if (p[1] === 'N') {
+
+                val +=
+                    (
+                        p[0] === 'w'
+                            ? pstKnight[r][c]
+                            : pstKnight[7 - r][c]
+                    ) * 0.1;
+            }
+
+            if (p[0] === aiColor) {
+                total += val;
+            } else {
+                total -= val;
+            }
+        }
+    }
+
+    return total;
+}
+
+
+function minimax(
+    bState,
+    depth,
+    alpha,
+    beta,
+    isMaximizing,
+    aiColor
+) {
+
+    const currentColor =
+        isMaximizing
+            ? aiColor
+            : (
+                aiColor === 'w'
+                    ? 'b'
+                    : 'w'
+            );
+
+    const legalMoves =
+        getAllLegalMovesForColor(
+            currentColor,
+            bState,
+            {
+                wK: false,
+                wQ: false,
+                bK: false,
+                bQ: false
+            },
+            null
+        );
+
+    if (
+        depth <= 0 ||
+        legalMoves.length === 0
+    ) {
+
+        if (legalMoves.length === 0) {
+
+            if (
+                isCheckmatePosition(
+                    bState,
+                    currentColor
+                )
+            ) {
+
+                return isMaximizing
+                    ? -9999
+                    : 9999;
+            }
+
+            return 0;
+        }
+
+        return evaluateBoard(
+            bState,
+            aiColor
+        );
+    }
+
+    if (isMaximizing) {
+
+        let maxEval = -Infinity;
+
+        for (const m of legalMoves) {
+
+            const nextB =
+                simulateMove(
+                    bState,
+                    m.from,
+                    m.to,
+                    null
+                );
+
+            const evalVal =
+                minimax(
+                    nextB,
+                    depth - 1,
+                    alpha,
+                    beta,
+                    false,
+                    aiColor
+                );
+
+            maxEval =
+                Math.max(
+                    maxEval,
+                    evalVal
+                );
+
+            alpha =
+                Math.max(
+                    alpha,
+                    evalVal
+                );
+
+            if (beta <= alpha) {
+                break;
+            }
+        }
+
+        return maxEval;
+
+    } else {
+
+        let minEval = Infinity;
+
+        for (const m of legalMoves) {
+
+            const nextB =
+                simulateMove(
+                    bState,
+                    m.from,
+                    m.to,
+                    null
+                );
+
+            const evalVal =
+                minimax(
+                    nextB,
+                    depth - 1,
+                    alpha,
+                    beta,
+                    true,
+                    aiColor
+                );
+
+            minEval =
+                Math.min(
+                    minEval,
+                    evalVal
+                );
+
+            beta =
+                Math.min(
+                    beta,
+                    evalVal
+                );
+
+            if (beta <= alpha) {
+                break;
+            }
+        }
+
+        return minEval;
+    }
+}
+
+
+/*
+ * AI 로직 개선 부분
+ * 대화 내용 종합 반영: Elo 수치에 따른 d(depth) 및 p(randomness) 동적 모델링
+ */
+function makeAiMove() {
+
+    if (!gameActive) return;
+
+    const legalMoves =
+        getAllLegalMovesForColor(
+            turn,
+            board,
+            castleRights,
+            enPassantTarget
+        );
+
+    if (legalMoves.length === 0) {
+        checkGameStatus();
+        return;
+    }
+
+    let chosenMove = null;
+
+    const isPanicMode =
+        !isUnlimited &&
+        times[turn] < 30;
+
+    /*
+     * 1. Elo 0 : 완전 무작위 행동
+     */
+    if (aiElo === 0) {
+
+        chosenMove =
+            legalMoves[
+                Math.floor(
+                    Math.random() *
+                    legalMoves.length
+                )
+            ];
+
+    } else {
+
+        const opponentColor =
+            turn === 'w'
+                ? 'b'
+                : 'w';
+
+        /*
+         * 2. 즉시 체크메이트 가능한 수 찾기
+         */
+        for (const m of legalMoves) {
+
+            const nextB =
+                simulateMove(
+                    board,
+                    m.from,
+                    m.to,
+                    enPassantTarget
+                );
+
+            if (
+                isCheckmatePosition(
+                    nextB,
+                    opponentColor
+                )
+            ) {
+
+                chosenMove = m;
+                break;
+            }
+        }
+
+        /*
+         * 3. 바로 체크메이트를 당하는 치명적 수 제외
+         */
+        if (!chosenMove) {
+
+            const safeMoves = [];
+
+            for (const m of legalMoves) {
+
+                const nextB =
+                    simulateMove(
+                        board,
+                        m.from,
+                        m.to,
+                        enPassantTarget
+                    );
+
+                const oppMoves =
+                    getAllLegalMovesForColor(
+                        opponentColor,
+                        nextB,
+                        {
+                            wK: false,
+                            wQ: false,
+                            bK: false,
+                            bQ: false
+                        },
+                        null
+                    );
+
+                let createsMateForOpp = false;
+
+                for (const om of oppMoves) {
+
+                    const oppNextB =
+                        simulateMove(
+                            nextB,
+                            om.from,
+                            om.to,
+                            null
+                        );
+
+                    if (
+                        isCheckmatePosition(
+                            oppNextB,
+                            turn
+                        )
+                    ) {
+
+                        createsMateForOpp = true;
+                        break;
+                    }
+                }
+
+                if (!createsMateForOpp) {
+                    safeMoves.push(m);
+                }
+            }
+
+            if (safeMoves.length > 0) {
+
+                legalMoves.length = 0;
+
+                safeMoves.forEach(function (m) {
+                    legalMoves.push(m);
+                });
+            }
+        }
+
+        /*
+         * 4. Elo 기반 파라미터(depth d, randomness prob p) 계산
+         */
+        if (!chosenMove) {
+
+            let depth = 1;
+            let randomnessProb = 0;
+
+            if (isPanicMode) {
+
+                depth = 1;
+                randomnessProb = 0;
+
+            } else {
+
+                // d(a) 계산 공식: Elo 0 ~ 3500 범위에 맞게 탐색 깊이 매핑 (최대 4 깊이로 연산 속도 보장)
+                depth = Math.max(1, Math.floor(1 + 3 * Math.pow(aiElo / 3500, 1.2)));
+
+                // p(a) 계산 공식: 지수 감쇠로 Elo가 높아질수록 실수 확률 급격히 감소
+                randomnessProb = Math.max(0, 0.85 * Math.exp(-0.0018 * aiElo));
+            }
+
+            // 평가 알고리즘을 통한 각 legalMove의 점수 산출
+            const scoredMoves = legalMoves.map(function(m) {
+
+                const nextB =
+                    simulateMove(
+                        board,
+                        m.from,
+                        m.to,
+                        enPassantTarget
+                    );
+
+                const score =
+                    minimax(
+                        nextB,
+                        depth - 1,
+                        -Infinity,
+                        Infinity,
+                        false,
+                        turn
+                    );
+
+                return { move: m, score: score };
+            });
+
+            // 점수 내림차순 정렬
+            scoredMoves.sort(function(a, b) {
+                return b.score - a.score;
+            });
+
+            /*
+             * 실수 확률(p) 적용
+             */
+            if (Math.random() < randomnessProb) {
+
+                // 실수 발생 시 tamamen 무작위 대신 상위 N개 중에서 무작위 선택하여 자연스러운 실수 유도
+                const subCandidateCount = Math.min(scoredMoves.length, Math.max(2, Math.floor(scoredMoves.length * 0.4)));
+                const randomIndex = Math.floor(Math.random() * subCandidateCount);
+
+                chosenMove = scoredMoves[randomIndex].move;
+
+            } else {
+
+                // 최선의 수(동점일 경우 무작위 선택)
+                const maxScore = scoredMoves[0].score;
+                const bestMoves = scoredMoves.filter(function(item) {
+                    return item.score === maxScore;
+                });
+
+                chosenMove =
+                    bestMoves[
+                        Math.floor(
+                            Math.random() *
+                            bestMoves.length
+                        )
+                    ].move;
+            }
+        }
+    }
+
+    if (chosenMove) {
+
+        executeMove(
+            chosenMove.from,
+            chosenMove.to
+        );
+    }
 }
 </script>
+
 </body>
 </html>
